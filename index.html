@@ -40,8 +40,9 @@
             color: white;
             text-align: center;
             backdrop-filter: blur(5px);
-            z-index: 50;
-            display: none; 
+            z-index: 50; /* Ensure visibility on top */
+            display: none; /* Initially hidden, shown on start */
+            transition: opacity 0.5s;
         }
 
         /* Finale Button (Funnel Shape) */
@@ -58,7 +59,7 @@
             pointer-events: auto;
             z-index: 50;
             display: none; /* Shown on start */
-            transition: transform 0.2s, background 0.2s;
+            transition: transform 0.2s, background 0.2s, opacity 0.5s;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -90,7 +91,7 @@
             position: absolute;
             white-space: nowrap;
         }
-        
+
         /* Finale specific text style - more colorful */
         .finale-text {
             font-size: 3.5rem;
@@ -99,6 +100,7 @@
             white-space: nowrap;
             animation: floatFade 4s forwards;
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            pointer-events: none;
         }
 
         @keyframes floatFade {
@@ -119,10 +121,11 @@
             font-size: 0.9rem;
             pointer-events: auto;
             max-width: 300px;
-            display: none; 
-            z-index: 50; 
+            display: none; /* Initially hidden */
+            z-index: 50; /* Ensure visibility on top */
         }
         
+        /* Copyright Style */
         #copyright {
             position: absolute;
             bottom: 10px;
@@ -135,6 +138,7 @@
             text-shadow: 0 0 2px black;
         }
         
+        /* Loading & Start Screen Overlay */
         #overlay-screen {
             position: absolute;
             top: 0;
@@ -165,7 +169,7 @@
             border-radius: 50px;
             color: white;
             cursor: pointer;
-            display: none; 
+            display: none; /* Hidden until loaded */
             font-weight: bold;
             box-shadow: 0 0 20px rgba(255, 0, 222, 0.5);
             transition: transform 0.2s;
@@ -183,14 +187,15 @@
         }
 
         #countdown {
-            font-size: 12rem;
+            font-size: 12rem; /* Bigger for Finale */
             color: #ffd700;
             font-weight: bold;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
             display: none;
-            z-index: 60;
+            z-index: 100;
         }
 
+        /* New Speech Bubble Style */
         #speech-bubble {
             display: none;
             background: rgba(255, 255, 255, 0.95);
@@ -202,9 +207,10 @@
             position: relative;
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            margin-bottom: 20px; 
+            margin-bottom: 20px; /* Space from center if needed */
         }
         
+        /* Triangle for speech bubble */
         #speech-bubble::after {
             content: '';
             position: absolute;
@@ -220,6 +226,16 @@
             0% { transform: scale(0); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
+
+        .float-anim {
+            animation: floatUp 8s forwards;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+            10% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-150px) scale(1.1); }
+        }
     </style>
     <!-- Imports -->
     <script type="importmap">
@@ -234,6 +250,7 @@
 </head>
 <body>
 
+    <!-- Overlay for Loading / Start / Error -->
     <div id="overlay-screen">
         <div id="loading-text">正在載入 AI 模型...</div>
         <button id="start-btn">開始體驗</button>
@@ -271,6 +288,7 @@
         </svg>
     </div>
 
+    <!-- Copyright Notice -->
     <div id="copyright"></div>
 
     <div id="ui-layer">
@@ -279,6 +297,7 @@
         <div id="wish-container"></div>
     </div>
 
+    <!-- Hidden Video, Visible Canvas for Landmarks -->
     <video id="webcam" autoplay playsinline></video>
     <canvas id="output-canvas" width="640" height="480"></canvas>
     
@@ -297,24 +316,39 @@
         const WEBCAM_HEIGHT = 480;
         
         // ZOOM LIMITS
-        const MIN_DISTANCE = 80;  
+        const MIN_DISTANCE = 80;  // Close to tower
         const MAX_DISTANCE = 250; 
         
         // --- Obfuscated Copyright Protection ---
+        // Hidden string: "© 2025 Jyun Han Chen"
         const _0x9a2b = [169, 32, 50, 48, 50, 53, 32, 74, 121, 117, 110, 32, 72, 97, 110, 32, 67, 104, 101, 110];
-        function _0x4e2d() { return String.fromCharCode(..._0x9a2b); }
+        
+        function _0x4e2d() {
+            return String.fromCharCode(..._0x9a2b);
+        }
 
         async function initCopyrightProtection() {
             const _0x1f = document.getElementById('copyright');
             if(_0x1f) _0x1f.innerText = _0x4e2d();
+
+            // Self-repair check loop
             setInterval(() => {
                 const _el = document.getElementById('copyright');
                 const _target = _0x4e2d();
                 let _valid = false;
-                if (_el && _el.innerText === _target && _el.style.display !== 'none' && _el.style.visibility !== 'hidden' && _el.style.opacity !== '0') {
-                    _valid = true;
+                
+                if (_el) {
+                    // Check if text matches and is visible
+                    if (_el.innerText === _target && 
+                        _el.style.display !== 'none' && 
+                        _el.style.visibility !== 'hidden' && 
+                        _el.style.opacity !== '0') {
+                        _valid = true;
+                    }
                 }
+
                 if (!_valid) {
+                    // Restore if tampered
                     let _new = document.getElementById('copyright');
                     if (!_new) {
                         _new = document.createElement('div');
@@ -325,6 +359,7 @@
                     _new.style.display = 'block';
                     _new.style.visibility = 'visible';
                     _new.style.opacity = '1';
+                    // Optional: Reset style if user tried to move it off screen
                     _new.style.position = 'absolute';
                     _new.style.bottom = '10px';
                     _new.style.right = '20px';
@@ -345,11 +380,11 @@
         let speechBubble = document.getElementById('speech-bubble');
         let lastGestureTime = 0;
         let isMakingWish = false;
-        let recognition; 
+        let recognition; // Speech API
 
         // Time Cycle Globals
-        let gameTime = 18.0; 
-        let timeSpeed = 1.0; 
+        let gameTime = 18.0; // Start at 18:00 (Sunset/Night start)
+        let timeSpeed = 1.0; // Multiplier
         const timeDisplay = document.getElementById('time-display');
         const speedSlider = document.getElementById('time-speed');
         
@@ -364,43 +399,53 @@
             "平安喜樂", 
             "萬事如意"
         ];
-        
-        // Scene Objects
+
+        // Scene Objects References (for updates)
         let sunLight, moonLight, ambientLight;
         let cityWindowsMat, cityStreetLightsMat, towerGlassMat, starsPoints;
 
-        // Audio
+        // Audio Context for Fireworks Sound
         let audioCtx;
 
         // Fireworks & Particles
         let fireworks = [];
-        let particleTexture; 
-        let handParticle; 
+        let particleTexture; // Texture for round particles
+        let handParticle; // The glow in the hand
 
+        // Taipei 101 Group
         let towerGroup;
 
-        // --- 1. Load Resources ---
+        // --- 1. Load Resources (AI Model) First ---
         async function loadResources() {
             try {
+                // Init Copyright
                 initCopyrightProtection();
+
+                // Setup 3D Scene immediately so background isn't empty
                 setupThreeJS();
                 particleTexture = getParticleTexture();
                 createTaipei101();
-                createCity(); 
+                createCity(); // Add surrounding city
                 createStars();
+                
+                // Load AI Model
                 await setupGestureRecognizer();
                 
+                // Ready to Start
                 document.getElementById('loading-text').style.display = 'none';
                 const startBtn = document.getElementById('start-btn');
                 startBtn.style.display = 'block';
                 
+                // Slider Event
                 speedSlider.addEventListener('input', (e) => {
+                    // Only update speed if not in finale mode
                     if(!isFinaleMode) timeSpeed = parseFloat(e.target.value);
                 });
-                
+
                 // Finale Button Listener
                 document.getElementById('finale-btn').addEventListener('click', startFinaleMode);
                 
+                // Add Click Listener
                 startBtn.addEventListener('click', startExperience);
 
             } catch (err) {
@@ -409,25 +454,33 @@
             }
         }
 
-        // --- 2. Start Experience ---
+        // --- 2. User Clicks Start -> Request Permissions ---
         async function startExperience() {
             const overlay = document.getElementById('overlay-screen');
             const startBtn = document.getElementById('start-btn');
+            
             startBtn.innerText = "啟動中...";
             startBtn.disabled = true;
 
             try {
+                // Initialize Audio Context on user interaction
                 try {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    if(audioCtx.state === 'suspended') await audioCtx.resume();
+                    if(audioCtx.state === 'suspended') {
+                        await audioCtx.resume();
+                    }
                 } catch(e) { console.warn("Web Audio API not supported"); }
 
+                // Request Webcam
                 await setupWebcam();
+
+                // Setup Speech
                 setupSpeech();
 
-                overlay.style.display = 'none'; 
+                // Start Animation Loop
+                overlay.style.display = 'none'; // Hide overlay
                 document.getElementById('instructions').style.display = 'block';
-                document.getElementById('time-controls').style.display = 'block';
+                document.getElementById('time-controls').style.display = 'block'; // Show time controls
                 document.getElementById('finale-btn').style.display = 'flex'; // Show finale button
                 animate();
 
@@ -435,6 +488,7 @@
                 console.error("Permission Error:", err);
                 startBtn.innerText = "重試";
                 startBtn.disabled = false;
+                
                 if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
                     showError("⚠️ 無法取得權限<br>請點擊網址列左側的設定圖示，允許「攝影機」與「麥克風」權限，然後重新整理頁面。");
                 } else {
@@ -457,6 +511,7 @@
             
             // 1. Disable Controls & UI updates
             statusMsg.innerText = "✨ 跨年倒數模式啟動 ✨";
+            // Hide/Dim UI
             document.getElementById('time-controls').style.opacity = '0.5';
             document.getElementById('time-controls').style.pointerEvents = 'none';
             document.getElementById('finale-btn').style.display = 'none'; // Hide button during finale
@@ -546,39 +601,48 @@
             timeSpeed = parseFloat(speedSlider.value);
         }
 
-        // --- Helper: Texture ---
+        // --- Helper: Create a glowing dot texture ---
         function getParticleTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 32; canvas.height = 32;
-            const ctx = canvas.getContext('2d');
-            const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-            gradient.addColorStop(0, 'rgba(255,255,255,1)');
-            gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
-            gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 32, 32);
-            return new THREE.CanvasTexture(canvas);
+            canvas.width = 32;
+            canvas.height = 32;
+            const context = canvas.getContext('2d');
+            
+            // Radial gradient for soft glow
+            const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');       // Center white
+            gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');   // Inner glow
+            gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)');   // Outer glow
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');            // Transparent edge
+            
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 32, 32);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
         }
 
-        // --- Helper: Windows ---
+        // --- Helper: Generate Window Texture for Buildings ---
         function getWindowTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 64; canvas.height = 64;
             const ctx = canvas.getContext('2d');
+            // Background: Dark building
             ctx.fillStyle = '#000'; ctx.fillRect(0,0,64,64);
+            
+            // Random lit windows (Yellow/Warm)
             ctx.fillStyle = '#ffecaa'; 
             for(let i=0; i<32; i++) {
                 if(Math.random() > 0.4) {
                     const x = Math.floor(Math.random()*8)*8;
                     const y = Math.floor(Math.random()*16)*4;
-                    ctx.fillRect(x+1, y+1, 5, 2); 
+                    ctx.fillRect(x+1, y+1, 5, 2); // Window shape
                 }
             }
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            texture.magFilter = THREE.NearestFilter; 
+            texture.magFilter = THREE.NearestFilter; // Pixel art style
             return texture;
         }
 
@@ -587,7 +651,7 @@
             const container = document.getElementById('canvas-container');
             
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000); 
+            scene.background = new THREE.Color(0x000000); // Start black
             scene.fog = new THREE.FogExp2(0x101015, 0.003); 
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -599,6 +663,7 @@
             renderer.toneMapping = THREE.ReinhardToneMapping;
             container.appendChild(renderer.domElement);
 
+            // Controls
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
@@ -609,153 +674,203 @@
             controls.enableZoom = false; 
             controls.target.set(0, 40, 0);
 
+            // Lighting Setup for Day/Night
             ambientLight = new THREE.AmbientLight(0x222233, 0.5); 
             scene.add(ambientLight);
 
-            sunLight = new THREE.DirectionalLight(0xffffee, 0); 
+            // Sun (Directional)
+            sunLight = new THREE.DirectionalLight(0xffffee, 0); // Start off
             sunLight.position.set(100, 100, 50);
             scene.add(sunLight);
 
+            // Moon (Directional - bluish)
             moonLight = new THREE.DirectionalLight(0xaaccff, 0.5); 
             moonLight.position.set(-50, 100, -50);
             scene.add(moonLight);
 
+            // Ground
             const planeGeo = new THREE.PlaneGeometry(800, 800);
             const planeMat = new THREE.MeshStandardMaterial({ 
-                color: 0x1a1a1a, roughness: 0.8, metalness: 0.2 
+                color: 0x1a1a1a, 
+                roughness: 0.8, 
+                metalness: 0.2 
             });
             const plane = new THREE.Mesh(planeGeo, planeMat);
             plane.rotation.x = -Math.PI / 2;
             scene.add(plane);
 
+            // Hand Tracker Particle
             const sphereGeo = new THREE.SphereGeometry(1, 16, 16);
             const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
             handParticle = new THREE.Mesh(sphereGeo, sphereMat);
             handParticle.visible = false;
             scene.add(handParticle);
 
+            // Resize handler
             window.addEventListener('resize', onWindowResize);
         }
 
-        // --- Day/Night Cycle ---
+        // --- Day/Night Cycle Logic ---
         function updateDayNightCycle(deltaTime) {
-            // Skip update if finale mode
+            // Check Finale Mode FIRST
             if(isFinaleMode) {
-                // Force Night look
+                // Force Night look instantly
                 scene.background.setHex(0x050510);
                 scene.fog.color.setHex(0x050510);
                 sunLight.intensity = 0;
                 moonLight.intensity = 0.8;
                 ambientLight.intensity = 0.2;
+                
                 if(cityWindowsMat) cityWindowsMat.emissiveIntensity = 0.8;
                 if(cityStreetLightsMat) cityStreetLightsMat.color.setHex(0xffddaa);
                 if(towerGlassMat) towerGlassMat.emissiveIntensity = 1.0;
                 if(starsPoints) starsPoints.material.opacity = 1.0;
-                return;
+                return; // Skip normal time update
             }
 
+            // Update time
+            // timeSpeed of 1 => 1 hour per 5 seconds roughly? Let's say 1 real sec = X game minutes
+            // Let's make speed=1 be slow, speed=10 be fast.
             gameTime += (deltaTime * timeSpeed * 0.5); 
             if (gameTime >= 24) gameTime = 0;
 
+            // Format Display
             const h = Math.floor(gameTime);
             const m = Math.floor((gameTime - h) * 60);
             timeDisplay.innerText = `目前時間: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+
+            // --- Interpolation Factors ---
+            // Day: 6-18, Night: 18-6
+            // Twilight: 5-7, 17-19
             
             let isNight = false;
             let sunIntensity = 0;
             let moonIntensity = 0;
             let skyColor = new THREE.Color(0x000000);
+            let fogColor = new THREE.Color(0x000000);
             let cityLightsOn = false;
 
             if (gameTime >= 6 && gameTime < 18) {
+                // DAY TIME
                 isNight = false;
-                if (gameTime < 7) { 
+                
+                // Sun ramp up/down
+                if (gameTime < 7) { // Sunrise 6-7
                     const t = gameTime - 6;
                     sunIntensity = t;
                     moonIntensity = 0.5 * (1-t);
-                    skyColor.lerpColors(new THREE.Color(0x050510), new THREE.Color(0x87CEEB), t); 
-                } else if (gameTime > 17) { 
+                    skyColor.lerpColors(new THREE.Color(0x050510), new THREE.Color(0x87CEEB), t); // Dark to Blue
+                } else if (gameTime > 17) { // Sunset 17-18
                     const t = gameTime - 17;
                     sunIntensity = 1 - t;
                     moonIntensity = 0.5 * t;
-                    skyColor.lerpColors(new THREE.Color(0x87CEEB), new THREE.Color(0xff4500), t); 
+                    skyColor.lerpColors(new THREE.Color(0x87CEEB), new THREE.Color(0xff4500), t); // Blue to Orange
                 } else {
+                    // Mid day
                     sunIntensity = 1;
                     moonIntensity = 0;
-                    skyColor.setHex(0x87CEEB); 
+                    skyColor.setHex(0x87CEEB); // Sky Blue
                 }
             } else {
+                // NIGHT TIME
                 isNight = true;
                 sunIntensity = 0;
-                if (gameTime >= 18 && gameTime < 19) { 
+                
+                if (gameTime >= 18 && gameTime < 19) { // Dusk 18-19
                     const t = gameTime - 18;
                     moonIntensity = 0.5 * t;
-                    skyColor.lerpColors(new THREE.Color(0xff4500), new THREE.Color(0x050510), t); 
-                } else if (gameTime >= 5 && gameTime < 6) { 
+                    skyColor.lerpColors(new THREE.Color(0xff4500), new THREE.Color(0x050510), t); // Orange to Dark
+                } else if (gameTime >= 5 && gameTime < 6) { // Dawn 5-6
                     const t = gameTime - 5;
                     moonIntensity = 0.5 * (1-t);
                     skyColor.lerpColors(new THREE.Color(0x050510), new THREE.Color(0x101030), t);
                 } else {
+                    // Deep Night
                     moonIntensity = 0.5;
                     skyColor.setHex(0x050510);
                 }
+                
                 cityLightsOn = true;
             }
 
+            // --- Apply Changes ---
             scene.background = skyColor;
-            scene.fog.color.copy(skyColor).multiplyScalar(0.5); 
+            scene.fog.color.copy(skyColor).multiplyScalar(0.5); // Fog matches sky somewhat
             
             sunLight.intensity = sunIntensity * 1.5;
             moonLight.intensity = moonIntensity;
-            ambientLight.intensity = 0.2 + sunIntensity * 0.6; 
+            ambientLight.intensity = 0.2 + sunIntensity * 0.6; // Brighter ambient in day
 
-            const sunAngle = ((gameTime - 6) / 24) * Math.PI * 2; 
+            // Rotate celestial bodies
+            const sunAngle = ((gameTime - 6) / 24) * Math.PI * 2; // 0 at 6am (Sunrise)
             sunLight.position.set(Math.cos(sunAngle)*100, Math.sin(sunAngle)*100, 50);
 
+            // City Lights (Windows)
             if (cityWindowsMat) {
+                // Flicker or just turn on at night
+                // Lerp emissive intensity
                 const targetEmit = cityLightsOn ? 0.8 : 0.0;
                 cityWindowsMat.emissiveIntensity += (targetEmit - cityWindowsMat.emissiveIntensity) * 0.05;
             }
+
+            // Street Lights
             if (cityStreetLightsMat) {
                 const targetColor = cityLightsOn ? new THREE.Color(0xffddaa) : new THREE.Color(0x222222);
                 cityStreetLightsMat.color.lerp(targetColor, 0.05);
             }
+            
+            // Tower Glass (101 Lights)
             if (towerGlassMat) {
-                const targetEmit = cityLightsOn ? 1.0 : 0.0; 
+                const targetEmit = cityLightsOn ? 1.0 : 0.0; // Off in day
                 towerGlassMat.emissiveIntensity += (targetEmit - towerGlassMat.emissiveIntensity) * 0.05;
             }
+
+            // Stars (Opacity)
             if (starsPoints) {
                 const targetOp = isNight ? 1.0 : 0.0;
                 starsPoints.material.opacity += (targetOp - starsPoints.material.opacity) * 0.05;
             }
         }
 
-        // --- Procedural City ---
+        // --- Procedural City Generator ---
         function createCity() {
             const cityGroup = new THREE.Group();
+            
             const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
             const windowTex = getWindowTexture();
             
+            // Store reference for update
             cityWindowsMat = new THREE.MeshStandardMaterial({
-                color: 0x222222, map: windowTex, roughness: 0.2, emissive: 0xffaa00, emissiveMap: windowTex, emissiveIntensity: 0.8
+                color: 0x222222,
+                map: windowTex,
+                roughness: 0.2,
+                emissive: 0xffaa00,
+                emissiveMap: windowTex,
+                emissiveIntensity: 0.8
             });
+            
             const matDark = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 });
             const matGlass = new THREE.MeshStandardMaterial({ color: 0x223344, roughness: 0.1, metalness: 0.6 });
 
-            const range = 250; const blockSize = 30;
+            // Generate Grid
+            const range = 250;
+            const blockSize = 30;
             
             for (let x = -range; x <= range; x += blockSize) {
                 for (let z = -range; z <= range; z += blockSize) {
                     const dist = Math.sqrt(x*x + z*z);
                     if (dist < 45) continue; 
+                    
                     if (Math.random() > 0.2) {
                         const height = 15 + Math.random() * 50; 
                         const width = 10 + Math.random() * 15;
                         const depth = 10 + Math.random() * 15;
+
                         const mesh = new THREE.Mesh(buildingGeo, Math.random()>0.3 ? cityWindowsMat : matGlass);
                         mesh.position.set(x + (Math.random()-0.5)*5, height/2, z + (Math.random()-0.5)*5);
                         mesh.scale.set(width, height, depth);
                         cityGroup.add(mesh);
+                        
                         const roof = new THREE.Mesh(buildingGeo, matDark);
                         roof.position.set(mesh.position.x, height + 1, mesh.position.z);
                         roof.scale.set(width*0.8, 2, depth*0.8);
@@ -764,14 +879,18 @@
                 }
             }
 
+            // Street Props
             const treeGroup = new THREE.Group();
             const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 3, 5);
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x443322 });
             const leavesGeo = new THREE.IcosahedronGeometry(2.5, 0);
             const leavesMat = new THREE.MeshStandardMaterial({ color: 0x225522, roughness: 0.9 });
+            
             const poleGeo = new THREE.CylinderGeometry(0.2, 0.2, 8);
             const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
             const lightGeo = new THREE.SphereGeometry(0.8);
+            
+            // Store reference
             cityStreetLightsMat = new THREE.MeshBasicMaterial({ color: 0xffddaa });
 
             for (let i = 0; i < 150; i++) {
@@ -779,10 +898,12 @@
                 const theta = Math.random() * Math.PI * 2;
                 const px = r * Math.cos(theta);
                 const pz = r * Math.sin(theta);
+
                 if (Math.random() > 0.4) {
                     const trunk = new THREE.Mesh(trunkGeo, trunkMat);
                     trunk.position.set(px, 1.5, pz);
                     treeGroup.add(trunk);
+                    
                     const leaves = new THREE.Mesh(leavesGeo, leavesMat);
                     leaves.position.set(px, 4, pz);
                     treeGroup.add(leaves);
@@ -790,26 +911,47 @@
                     const pole = new THREE.Mesh(poleGeo, poleMat);
                     pole.position.set(px, 4, pz);
                     treeGroup.add(pole);
+
                     const light = new THREE.Mesh(lightGeo, cityStreetLightsMat);
                     light.position.set(px, 8, pz);
                     treeGroup.add(light);
                 }
             }
+            
             scene.add(cityGroup);
             scene.add(treeGroup);
         }
 
+        // --- Procedural Taipei 101 ---
         function createTaipei101() {
             towerGroup = new THREE.Group();
+
+            // Store reference
             towerGlassMat = new THREE.MeshPhysicalMaterial({
-                color: 0x00aadd, metalness: 0.2, roughness: 0.1, transmission: 0.6, thickness: 2, emissive: 0x004466, emissiveIntensity: 1.0 
+                color: 0x00aadd,
+                metalness: 0.2,
+                roughness: 0.1,
+                transmission: 0.6,
+                thickness: 2,
+                emissive: 0x004466,
+                emissiveIntensity: 1.0 
             });
-            const goldMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+
+            const goldMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+
             const baseGeo = new THREE.BoxGeometry(20, 15, 20);
             const base = new THREE.Mesh(baseGeo, towerGlassMat);
             base.position.y = 7.5;
             towerGroup.add(base);
-            const segmentCount = 8; const startY = 15; const segmentHeight = 8;
+
+            const segmentCount = 8;
+            const startY = 15;
+            const segmentHeight = 8;
+            
             for(let i=0; i<segmentCount; i++) {
                 const yPos = startY + i * segmentHeight;
                 const segmentGeo = new THREE.CylinderGeometry(11 - (i*0.2), 9 - (i*0.2), segmentHeight, 4);
@@ -817,6 +959,7 @@
                 const segment = new THREE.Mesh(segmentGeo, towerGlassMat);
                 segment.position.y = yPos + segmentHeight/2;
                 towerGroup.add(segment);
+
                 if (i < segmentCount) {
                     for(let c=0; c<4; c++) {
                         const cornerGeo = new THREE.BoxGeometry(1,1,1);
@@ -828,11 +971,13 @@
                     }
                 }
             }
+
             const spireHeight = 15;
             const spireGeo = new THREE.CylinderGeometry(0.5, 3, spireHeight, 8);
             const spire = new THREE.Mesh(spireGeo, towerGlassMat);
             spire.position.y = startY + (segmentCount * segmentHeight) + spireHeight/2;
             towerGroup.add(spire);
+
             scene.add(towerGroup);
         }
 
@@ -840,17 +985,25 @@
             const starGeo = new THREE.BufferGeometry();
             const starCount = 1000;
             const posArray = new Float32Array(starCount * 3);
-            for(let i=0; i<starCount*3; i++) posArray[i] = (Math.random() - 0.5) * 500;
+            for(let i=0; i<starCount*3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 500; // Spread out
+            }
             starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            
             const starMat = new THREE.PointsMaterial({
-                size: 1.5, color: 0xffffff, map: particleTexture, transparent: true, opacity: 1.0, alphaTest: 0.1
+                size: 1.5, 
+                color: 0xffffff, 
+                map: particleTexture, 
+                transparent: true,
+                opacity: 1.0, // Start visible (it's night)
+                alphaTest: 0.1
             });
             starsPoints = new THREE.Points(starGeo, starMat);
             starsPoints.position.y = 100;
             scene.add(starsPoints);
         }
 
-        // --- MediaPipe & Webcam ---
+        // --- MediaPipe Setup ---
         async function setupGestureRecognizer() {
             const vision = await FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
@@ -871,80 +1024,257 @@
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             video.srcObject = stream;
             return new Promise((resolve) => {
-                video.onloadeddata = () => { webcamRunning = true; resolve(); };
+                video.onloadeddata = () => {
+                    webcamRunning = true;
+                    resolve();
+                };
             });
         }
 
+        // --- Speech Recognition ---
         function setupSpeech() {
             if ('webkitSpeechRecognition' in window) {
                 recognition = new webkitSpeechRecognition();
                 recognition.continuous = false;
                 recognition.interimResults = false;
                 recognition.lang = 'zh-TW';
-                recognition.onstart = () => { statusMsg.innerText = "🎤 請說出你的願望！"; speechBubble.innerText = "請說出你的願望..."; speechBubble.style.display = 'block'; };
-                recognition.onresult = (event) => { showWish(event.results[0][0].transcript); speechBubble.style.display = 'none'; };
-                recognition.onerror = () => { statusMsg.innerText = "語音辨識錯誤，請重試"; speechBubble.style.display = 'none'; resetWishState(); };
-                recognition.onend = () => { if(isMakingWish) setTimeout(resetWishState, 5000); };
+
+                recognition.onstart = () => {
+                    statusMsg.innerText = "🎤 請說出你的願望！";
+                    speechBubble.innerText = "請說出你的願望...";
+                    speechBubble.style.display = 'block';
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    showWish(transcript);
+                    speechBubble.style.display = 'none'; // Hide bubble after result
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech error", event);
+                    statusMsg.innerText = "語音辨識錯誤，請重試";
+                    speechBubble.style.display = 'none';
+                    resetWishState();
+                };
+                
+                recognition.onend = () => {
+                   if(isMakingWish) {
+                       setTimeout(resetWishState, 5000); 
+                   }
+                };
+
+            } else {
+                console.warn("Speech API not supported");
             }
         }
 
-        // --- Interaction Logic ---
+        function triggerWishSequence() {
+            if (isMakingWish) return;
+            isMakingWish = true;
+            
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            let count = 3;
+            
+            statusMsg.innerText = "許願倒數中...";
+            speechBubble.innerText = "3...";
+            speechBubble.style.display = 'block';
+            
+            const timer = setInterval(() => {
+                countdownEl.innerText = count;
+                speechBubble.innerText = count + "...";
+                createFirework(0, 40 + (3-count)*10, 0, 0xffd700); // Celebration fireworks
+                count--;
+                if (count < 0) {
+                    clearInterval(timer);
+                    countdownEl.style.display = 'none';
+                    if(recognition) {
+                        try {
+                            recognition.start();
+                        } catch(e) {
+                            console.log("Recognition already started or error", e);
+                        }
+                    } else {
+                        showWish("新年快樂!"); // Fallback
+                        speechBubble.style.display = 'none';
+                    }
+                }
+            }, 1000);
+        }
+
+        function showWish(text) {
+            const container = document.getElementById('wish-container');
+            const el = document.createElement('div');
+            el.className = 'wish-text float-anim';
+            el.innerText = text + " ✨";
+            
+            const rX = (Math.random() - 0.5) * 40;
+            const rY = 30 + Math.random() * 20;
+            
+            el.style.left = `50%`;
+            el.style.top = `40%`;
+            el.style.transform = `translate(-50%, -50%)`;
+            
+            container.appendChild(el);
+            
+            for(let i=0; i<5; i++) {
+                setTimeout(() => {
+                    createFirework((Math.random()-0.5)*40, 40+Math.random()*40, (Math.random()-0.5)*40);
+                }, i * 300);
+            }
+        }
+
+        function resetWishState() {
+            isMakingWish = false;
+            statusMsg.innerText = "等待手勢...";
+            speechBubble.style.display = 'none';
+        }
+
+        // --- Logic Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const deltaTime = clock.getDelta();
+            
+            // 1. Update Day/Night
+            updateDayNightCycle(deltaTime);
+
+            // 2. Predict Webcam
+            if (webcamRunning && gestureRecognizer) {
+                predictWebcam();
+            }
+
+            // 3. Update Scene
+            controls.update();
+            updateFireworks();
+            
+            // Animate 101 glow pulse ONLY if it's night (checked via intensity)
+            // But we already handle day/night intensity in updateDayNightCycle
+            // So we just add pulse on top if intensity > 0.5 roughly
+            if(towerGroup && towerGlassMat.emissiveIntensity > 0.3) {
+               const time = Date.now() * 0.001;
+               // Add a subtle pulse on top of the base intensity set by day/night cycle
+               // We need to be careful not to override the day/night logic. 
+               // Actually, day/night sets a 'target' base. Let's just oscillate slightly around current value?
+               // Or simpler: The day/night logic sets the main value. We don't need extra pulse if it complicates things.
+               // Let's keep the pulse but modulate it by overall intensity.
+               // towerGlassMat.emissiveIntensity += Math.sin(time) * 0.1 * towerGlassMat.emissiveIntensity; 
+               // (Simplified: let day/night control it mostly, maybe flicker slightly)
+            }
+
+            renderer.render(scene, camera);
+        }
+
         function get3DHandPosition(x, y) {
             const vec = new THREE.Vector3();
             const pos = new THREE.Vector3();
-            vec.set((1 - x) * 2 - 1, - (y * 2 - 1), 0.5);
+            
+            vec.set(
+                (1 - x) * 2 - 1, 
+                - (y * 2 - 1),
+                0.5
+            );
+            
             vec.unproject(camera);
             vec.sub(camera.position).normalize();
-            pos.copy(camera.position).add(vec.multiplyScalar(40));
+            
+            const distance = 40; 
+            pos.copy(camera.position).add(vec.multiplyScalar(distance));
             return pos;
         }
 
+        // --- Sound Synthesis ---
         function playFireworkSound() {
             if (!audioCtx) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume().catch(e=>console.log(e));
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(e => console.log("Audio resume failed", e));
+            }
+
             const t = audioCtx.currentTime;
-            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < buffer.length; i++) data[i] = Math.random() * 2 - 1;
             
+            // Explosion
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
             const noise = audioCtx.createBufferSource();
             noise.buffer = buffer;
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(1000, t);
-            filter.frequency.exponentialRampToValueAtTime(100, t + 0.5);
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(1, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-            
-            noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-            noise.start(t); noise.stop(t+0.5);
+            const noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(1000, t);
+            noiseFilter.frequency.exponentialRampToValueAtTime(100, t + 0.5);
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(1, t);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noise.start(t);
+            noise.stop(t + 0.5);
+
+            // Thud
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, t);
+            osc.frequency.exponentialRampToValueAtTime(40, t + 0.5);
+            const oscGain = audioCtx.createGain();
+            oscGain.gain.setValueAtTime(1, t);
+            oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+
+            osc.connect(oscGain);
+            oscGain.connect(audioCtx.destination);
+            osc.start(t);
+            osc.stop(t + 0.5);
         }
 
-        function dist(a, b) { return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2)); }
+        let previousCategoryName = "";
+        let handClosed = false;
+        let handPos3D = new THREE.Vector3();
+
+        function dist(a, b) {
+            return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+        }
 
         async function predictWebcam() {
-            // IF FINALE MODE, SKIP HAND INTERACTION
+            // CHECK FINALE MODE FIRST - DISABLE GESTURES IF ACTIVE
             if(isFinaleMode) {
-                canvasCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height); // Clear skeleton
+                canvasCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
                 handParticle.visible = false;
                 return;
             }
 
             let nowInMs = Date.now();
             const results = gestureRecognizer.recognizeForVideo(video, nowInMs);
+
+            // Clear canvas
             canvasCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
 
             if (results.landmarks && results.landmarks.length > 0) {
+                // Draw skeleton
                 for (const landmarks of results.landmarks) {
-                    drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, { color: "#00FF00", lineWidth: 3 });
-                    drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 1, radius: 3 });
+                    drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, {
+                        color: "#00FF00",
+                        lineWidth: 3
+                    });
+                    drawingUtils.drawLandmarks(landmarks, {
+                        color: "#FF0000",
+                        lineWidth: 1,
+                        radius: 3
+                    });
                 }
 
                 if (results.gestures.length > 0) {
                     const gesture = results.gestures[0][0];
                     const categoryName = gesture.categoryName;
                     const landmarks = results.landmarks[0]; 
+
+                    // Calculate center
                     const palmX = (landmarks[0].x + landmarks[9].x) / 2;
                     const palmY = (landmarks[0].y + landmarks[9].y) / 2;
                     
@@ -952,50 +1282,94 @@
                     handParticle.position.copy(handPos3D);
                     handParticle.visible = true;
 
+                    // --- Geometry Calculations for Zoom & Rotate ---
                     const handSize = dist(landmarks[0], landmarks[9]);
-                    const pinchRatio = dist(landmarks[4], landmarks[8]) / handSize;
+                    const pinchDistance = dist(landmarks[4], landmarks[8]);
+                    const pinchRatio = pinchDistance / handSize;
+                    
                     const idxDx = landmarks[8].x - landmarks[5].x; 
                     const idxDy = landmarks[8].y - landmarks[5].y; 
                     
-                    let isZooming = false; let isRotating = false;
+                    let isZooming = false;
+                    let isRotating = false;
+
+                    // --- GESTURE LOGIC START ---
 
                     if (categoryName === "Victory") {
                         handParticle.material.color.setHex(0xffff00);
                         statusMsg.innerText = "✌️ 準備許願...";
                         handClosed = false;
                         triggerWishSequence();
-                    } else {
+                    }
+                    else {
                         const currentDist = camera.position.distanceTo(controls.target);
+                        
+                        // Zoom In
                         if (pinchRatio < 0.15) {
                             if (currentDist > MIN_DISTANCE) {
-                                statusMsg.innerText = "👌 視角拉近";
+                                statusMsg.innerText = "👌 視角拉近 (Zoom In)";
                                 handParticle.material.color.setHex(0x00ffff);
-                                const dir = new THREE.Vector3();
-                                camera.getWorldDirection(dir);
-                                camera.position.addScaledVector(dir, 0.5);
+                                const direction = new THREE.Vector3();
+                                camera.getWorldDirection(direction);
+                                camera.position.addScaledVector(direction, 0.5);
                                 isZooming = true;
+                            } else {
+                                statusMsg.innerText = "🚫 已達最近距離";
                             }
-                        } else if (pinchRatio > 0.8 && categoryName !== "Open_Palm") {
+                        } 
+                        // Zoom Out
+                        else if (pinchRatio > 0.8 && categoryName !== "Open_Palm") {
                             if (currentDist < MAX_DISTANCE) {
-                                statusMsg.innerText = "👐 視角拉遠";
+                                statusMsg.innerText = "👐 視角拉遠 (Zoom Out)";
                                 handParticle.material.color.setHex(0x0000ff);
-                                const dir = new THREE.Vector3();
-                                camera.getWorldDirection(dir);
-                                camera.position.addScaledVector(dir, -0.5);
+                                const direction = new THREE.Vector3();
+                                camera.getWorldDirection(direction);
+                                camera.position.addScaledVector(direction, -0.5);
                                 isZooming = true;
+                            } else {
+                                statusMsg.innerText = "🚫 已達最遠距離";
                             }
                         }
 
                         if (!isZooming) {
-                            const isIndexExtended = dist(landmarks[5], landmarks[8]) > handSize * 0.5;
+                            const indexLen = dist(landmarks[5], landmarks[8]);
+                            const isIndexExtended = indexLen > handSize * 0.5;
+                            
                             if (isIndexExtended && categoryName !== "Open_Palm" && categoryName !== "Closed_Fist") {
                                 const sensitivity = 0.03;
+                                let directionMsg = "";
                                 let hasMovement = false;
-                                if (idxDx < -0.05) { controls.autoRotate = false; camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), sensitivity); hasMovement = true; } 
-                                else if (idxDx > 0.05) { controls.autoRotate = false; camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -sensitivity); hasMovement = true; }
-                                if (idxDy < -0.05) { camera.position.y += 0.5; hasMovement = true; } 
-                                else if (idxDy > 0.05) { camera.position.y -= 0.5; if(camera.position.y < 5) camera.position.y = 5; hasMovement = true; }
-                                if (hasMovement) { statusMsg.innerText = "調整視角中"; camera.lookAt(0, 40, 0); isRotating = true; }
+
+                                // Horizontal
+                                if (idxDx < -0.05) { // Left
+                                    directionMsg += "👈";
+                                    controls.autoRotate = false;
+                                    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), sensitivity); 
+                                    hasMovement = true;
+                                } else if (idxDx > 0.05) { // Right
+                                    directionMsg += "👉";
+                                    controls.autoRotate = false;
+                                    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -sensitivity);
+                                    hasMovement = true;
+                                }
+
+                                // Vertical
+                                if (idxDy < -0.05) { // Up
+                                    directionMsg += "👆";
+                                    camera.position.y += 0.5;
+                                    hasMovement = true;
+                                } else if (idxDy > 0.05) { // Down
+                                    directionMsg += "👇";
+                                    camera.position.y -= 0.5;
+                                    if(camera.position.y < 5) camera.position.y = 5; 
+                                    hasMovement = true;
+                                }
+
+                                if (hasMovement) {
+                                    statusMsg.innerText = directionMsg + " 調整視角";
+                                    camera.lookAt(0, 40, 0); 
+                                    isRotating = true;
+                                }
                             }
                             
                             if (!isRotating) {
@@ -1004,11 +1378,17 @@
                                     handParticle.material.color.setHex(0xff0000);
                                     handClosed = true; 
                                     handParticle.scale.setScalar(1.5 + Math.sin(nowInMs * 0.02) * 0.5);
-                                } else if (categoryName === "Open_Palm") {
+                                } 
+                                else if (categoryName === "Open_Palm") {
                                     statusMsg.innerText = "🖐️ 施放煙火！";
                                     handParticle.material.color.setHex(0xffffff);
                                     handParticle.scale.setScalar(1);
-                                    if (handClosed) { createFirework(handPos3D.x, handPos3D.y, handPos3D.z); playFireworkSound(); handClosed = false; }
+
+                                    if (handClosed) {
+                                        createFirework(handPos3D.x, handPos3D.y, handPos3D.z);
+                                        playFireworkSound(); 
+                                        handClosed = false; 
+                                    }
                                 } else {
                                     statusMsg.innerText = "等待手勢...";
                                     handParticle.scale.setScalar(1);
@@ -1016,6 +1396,7 @@
                             }
                         }
                     }
+
                     previousCategoryName = categoryName;
                 }
             } else {
@@ -1023,62 +1404,95 @@
             }
         }
 
-        // --- Core Firework Logic ---
+        // --- Fireworks System (Updated for Fine Particles & Glow) ---
         function createFirework(x, y, z, forceColor = null) {
             const particleCount = 400 + Math.random() * 200;
-            const geo = new THREE.BufferGeometry();
-            const pos = []; const vel = []; const col = [];
-            const baseC = new THREE.Color();
-            if (forceColor) baseC.setHex(forceColor); else baseC.setHSL(Math.random(), 1.0, 0.6); 
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const velocities = [];
+            const colors = [];
+
+            const baseColor = new THREE.Color();
+            if (forceColor) {
+                baseColor.setHex(forceColor);
+            } else {
+                baseColor.setHSL(Math.random(), 1.0, 0.6); 
+            }
 
             for (let i = 0; i < particleCount; i++) {
-                pos.push(x, y, z);
+                positions.push(x, y, z);
+                
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos((Math.random() * 2) - 1);
-                const spd = 0.2 + Math.random() * 2.5; 
-                vel.push(spd * Math.sin(phi) * Math.cos(theta), spd * Math.sin(phi) * Math.sin(theta), spd * Math.cos(phi));
-                const pC = baseC.clone(); pC.offsetHSL(0, 0, (Math.random()-0.5)*0.4);
-                col.push(pC.r, pC.g, pC.b);
+                const speed = 0.2 + Math.random() * 2.5; 
+                
+                velocities.push(
+                    speed * Math.sin(phi) * Math.cos(theta),
+                    speed * Math.sin(phi) * Math.sin(theta),
+                    speed * Math.cos(phi)
+                );
+
+                const pColor = baseColor.clone();
+                pColor.offsetHSL(0, 0, (Math.random() - 0.5) * 0.4); 
+                colors.push(pColor.r, pColor.g, pColor.b);
             }
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-            const mat = new THREE.PointsMaterial({ size: 2.5, map: particleTexture, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 1.0 });
-            const pts = new THREE.Points(geo, mat);
-            scene.add(pts);
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({ 
+                size: 2.5, 
+                map: particleTexture, 
+                vertexColors: true, 
+                blending: THREE.AdditiveBlending, 
+                depthWrite: false,
+                transparent: true,
+                opacity: 1.0
+            });
+
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+
             if(forceColor) playFireworkSound();
-            fireworks.push({ mesh: pts, velocities: vel, age: 0, maxAge: 80 + Math.random() * 40 });
+
+            fireworks.push({
+                mesh: points,
+                velocities: velocities,
+                age: 0,
+                maxAge: 80 + Math.random() * 40
+            });
         }
 
         function updateFireworks() {
             for (let i = fireworks.length - 1; i >= 0; i--) {
-                const fw = fireworks[i]; fw.age++;
-                const pos = fw.mesh.geometry.attributes.position.array;
-                for (let j = 0; j < fw.velocities.length / 3; j++) {
-                    pos[j*3] += fw.velocities[j*3];
-                    pos[j*3+1] += fw.velocities[j*3+1];
-                    pos[j*3+2] += fw.velocities[j*3+2];
-                    fw.velocities[j*3+1] -= 0.015; 
-                    fw.velocities[j*3] *= 0.96; fw.velocities[j*3+1] *= 0.96; fw.velocities[j*3+2] *= 0.96;
-                }
-                fw.mesh.geometry.attributes.position.needsUpdate = true;
-                const life = fw.age / fw.maxAge;
-                fw.mesh.material.opacity = 1 - Math.pow(life, 3);
-                if (fw.age >= fw.maxAge) { scene.remove(fw.mesh); fw.mesh.geometry.dispose(); fw.mesh.material.dispose(); fireworks.splice(i, 1); }
-            }
-        }
+                const fw = fireworks[i];
+                fw.age++;
 
-        const clock = new THREE.Clock();
-        function animate() {
-            requestAnimationFrame(animate);
-            const dt = clock.getDelta();
-            updateDayNightCycle(dt);
-            if (webcamRunning && gestureRecognizer) predictWebcam();
-            controls.update();
-            updateFireworks();
-            if(towerGroup && towerGlassMat.emissiveIntensity > 0.3) {
-               // Tower slight pulse if night logic allows
+                const positions = fw.mesh.geometry.attributes.position.array;
+
+                for (let j = 0; j < fw.velocities.length / 3; j++) {
+                    positions[j * 3] += fw.velocities[j * 3];
+                    positions[j * 3 + 1] += fw.velocities[j * 3 + 1];
+                    positions[j * 3 + 2] += fw.velocities[j * 3 + 2];
+                    fw.velocities[j * 3 + 1] -= 0.015; 
+                    fw.velocities[j * 3] *= 0.96;
+                    fw.velocities[j * 3 + 1] *= 0.96;
+                    fw.velocities[j * 3 + 2] *= 0.96;
+                }
+
+                fw.mesh.geometry.attributes.position.needsUpdate = true;
+                
+                const lifeRatio = fw.age / fw.maxAge;
+                fw.mesh.material.opacity = 1 - Math.pow(lifeRatio, 3);
+                fw.mesh.material.size = Math.max(0.1, 2.5 * (1 - lifeRatio * 0.5));
+
+                if (fw.age >= fw.maxAge) {
+                    scene.remove(fw.mesh);
+                    fw.mesh.geometry.dispose();
+                    fw.mesh.material.dispose();
+                    fireworks.splice(i, 1);
+                }
             }
-            renderer.render(scene, camera);
         }
 
         function onWindowResize() {
@@ -1087,7 +1501,9 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        // Run
         loadResources();
+
     </script>
 </body>
 </html>
