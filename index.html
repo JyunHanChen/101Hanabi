@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台北101手勢互動煙火秀</title>
+    <title>台北101手勢互動煙火秀 (修正版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Noto Sans TC', sans-serif; user-select: none; }
@@ -268,6 +268,7 @@
             <li>🖐️ <b>張開手掌</b>：施放煙火</li>
             <li>👈👉 <b>左右指</b>：旋轉視角</li>
             <li>👆👇 <b>上下指</b>：高低視角</li>
+            <li>👌 <b>OK手勢</b>：維持3秒啟動倒數</li>
             <li>👌 <b>兩指捏合/張開</b>：拉近/拉遠</li>
             <li>✌️ <b>比 YA</b>：倒數 3 秒許願</li>
         </ul>
@@ -381,6 +382,9 @@
         let lastGestureTime = 0;
         let isMakingWish = false;
         let recognition; // Speech API
+
+        // OK Gesture Timer
+        let okGestureStartTime = 0;
 
         // Time Cycle Globals
         let gameTime = 18.0; // Start at 18:00 (Sunset/Night start)
@@ -1150,20 +1154,6 @@
             controls.update();
             updateFireworks();
             
-            // Animate 101 glow pulse ONLY if it's night (checked via intensity)
-            // But we already handle day/night intensity in updateDayNightCycle
-            // So we just add pulse on top if intensity > 0.5 roughly
-            if(towerGroup && towerGlassMat.emissiveIntensity > 0.3) {
-               const time = Date.now() * 0.001;
-               // Add a subtle pulse on top of the base intensity set by day/night cycle
-               // We need to be careful not to override the day/night logic. 
-               // Actually, day/night sets a 'target' base. Let's just oscillate slightly around current value?
-               // Or simpler: The day/night logic sets the main value. We don't need extra pulse if it complicates things.
-               // Let's keep the pulse but modulate it by overall intensity.
-               // towerGlassMat.emissiveIntensity += Math.sin(time) * 0.1 * towerGlassMat.emissiveIntensity; 
-               // (Simplified: let day/night control it mostly, maybe flicker slightly)
-            }
-
             renderer.render(scene, camera);
         }
 
@@ -1282,16 +1272,36 @@
                     handParticle.position.copy(handPos3D);
                     handParticle.visible = true;
 
-                    // --- Geometry Calculations for Zoom & Rotate ---
+                    // --- Geometry Calculations ---
                     const handSize = dist(landmarks[0], landmarks[9]);
                     const pinchDistance = dist(landmarks[4], landmarks[8]);
                     const pinchRatio = pinchDistance / handSize;
                     
                     const idxDx = landmarks[8].x - landmarks[5].x; 
                     const idxDy = landmarks[8].y - landmarks[5].y; 
+
+                    // --- Improved Finger State Checks ---
+                    const indexLen = dist(landmarks[5], landmarks[8]);
+                    const isIndexExtended = indexLen > handSize * 0.5;
+
+                    // Check if Middle Finger is Curled
+                    const distWristToMiddleTip = dist(landmarks[0], landmarks[12]);
+                    const distWristToMiddlePIP = dist(landmarks[0], landmarks[10]);
+                    const isMiddleCurled = distWristToMiddleTip < distWristToMiddlePIP;
+                    
+                    // Check Ring Finger
+                    const distWristToRingTip = dist(landmarks[0], landmarks[16]);
+                    const distWristToRingPIP = dist(landmarks[0], landmarks[14]);
+                    const isRingCurled = distWristToRingTip < distWristToRingPIP;
+
+                    // Check Pinky Finger
+                    const distWristToPinkyTip = dist(landmarks[0], landmarks[20]);
+                    const distWristToPinkyPIP = dist(landmarks[0], landmarks[18]);
+                    const isPinkyCurled = distWristToPinkyTip < distWristToPinkyPIP;
                     
                     let isZooming = false;
                     let isRotating = false;
+                    let isOkGesture = false;
 
                     // --- GESTURE LOGIC START ---
 
@@ -1300,98 +1310,122 @@
                         statusMsg.innerText = "✌️ 準備許願...";
                         handClosed = false;
                         triggerWishSequence();
+                        okGestureStartTime = 0; // Reset OK
                     }
                     else {
                         const currentDist = camera.position.distanceTo(controls.target);
-                        
-                        // Zoom In
-                        if (pinchRatio < 0.15) {
-                            if (currentDist > MIN_DISTANCE) {
-                                statusMsg.innerText = "👌 視角拉近 (Zoom In)";
-                                handParticle.material.color.setHex(0x00ffff);
-                                const direction = new THREE.Vector3();
-                                camera.getWorldDirection(direction);
-                                camera.position.addScaledVector(direction, 0.5);
-                                isZooming = true;
-                            } else {
-                                statusMsg.innerText = "🚫 已達最近距離";
-                            }
-                        } 
-                        // Zoom Out
-                        else if (pinchRatio > 0.8 && categoryName !== "Open_Palm") {
-                            if (currentDist < MAX_DISTANCE) {
-                                statusMsg.innerText = "👐 視角拉遠 (Zoom Out)";
-                                handParticle.material.color.setHex(0x0000ff);
-                                const direction = new THREE.Vector3();
-                                camera.getWorldDirection(direction);
-                                camera.position.addScaledVector(direction, -0.5);
-                                isZooming = true;
-                            } else {
-                                statusMsg.innerText = "🚫 已達最遠距離";
-                            }
-                        }
 
-                        if (!isZooming) {
-                            const indexLen = dist(landmarks[5], landmarks[8]);
-                            const isIndexExtended = indexLen > handSize * 0.5;
-                            
-                            if (isIndexExtended && categoryName !== "Open_Palm" && categoryName !== "Closed_Fist") {
-                                const sensitivity = 0.03;
-                                let directionMsg = "";
-                                let hasMovement = false;
-
-                                // Horizontal
-                                if (idxDx < -0.05) { // Left
-                                    directionMsg += "👈";
-                                    controls.autoRotate = false;
-                                    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), sensitivity); 
-                                    hasMovement = true;
-                                } else if (idxDx > 0.05) { // Right
-                                    directionMsg += "👉";
-                                    controls.autoRotate = false;
-                                    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -sensitivity);
-                                    hasMovement = true;
-                                }
-
-                                // Vertical
-                                if (idxDy < -0.05) { // Up
-                                    directionMsg += "👆";
-                                    camera.position.y += 0.5;
-                                    hasMovement = true;
-                                } else if (idxDy > 0.05) { // Down
-                                    directionMsg += "👇";
-                                    camera.position.y -= 0.5;
-                                    if(camera.position.y < 5) camera.position.y = 5; 
-                                    hasMovement = true;
-                                }
-
-                                if (hasMovement) {
-                                    statusMsg.innerText = directionMsg + " 調整視角";
-                                    camera.lookAt(0, 40, 0); 
-                                    isRotating = true;
-                                }
+                        // --- NEW OK GESTURE CHECK ---
+                        // Thumb & Index touching (Pinch) AND Other fingers extended
+                        if (pinchRatio < 0.15 && !isMiddleCurled && !isRingCurled && !isPinkyCurled) {
+                            isOkGesture = true;
+                            if (okGestureStartTime === 0) {
+                                okGestureStartTime = nowInMs;
                             }
                             
-                            if (!isRotating) {
-                                if (categoryName === "Closed_Fist") {
-                                    statusMsg.innerText = "✊ 集氣中...";
-                                    handParticle.material.color.setHex(0xff0000);
-                                    handClosed = true; 
-                                    handParticle.scale.setScalar(1.5 + Math.sin(nowInMs * 0.02) * 0.5);
-                                } 
-                                else if (categoryName === "Open_Palm") {
-                                    statusMsg.innerText = "🖐️ 施放煙火！";
-                                    handParticle.material.color.setHex(0xffffff);
-                                    handParticle.scale.setScalar(1);
-
-                                    if (handClosed) {
-                                        createFirework(handPos3D.x, handPos3D.y, handPos3D.z);
-                                        playFireworkSound(); 
-                                        handClosed = false; 
-                                    }
+                            const elapsed = nowInMs - okGestureStartTime;
+                            const remaining = Math.ceil(3 - elapsed/1000);
+                            
+                            statusMsg.innerText = `👌 OK手勢確認中... ${remaining}`;
+                            handParticle.material.color.setHex(0xff00ff); // Magenta for OK
+                            
+                            if (elapsed > 3000) {
+                                okGestureStartTime = 0;
+                                startFinaleMode();
+                            }
+                        } else {
+                            okGestureStartTime = 0; // Reset if gesture broken
+                            
+                            // Zoom In (Only if NOT OK gesture)
+                            if (pinchRatio < 0.15) {
+                                if (currentDist > MIN_DISTANCE) {
+                                    statusMsg.innerText = "👌 視角拉近 (Zoom In)";
+                                    handParticle.material.color.setHex(0x00ffff);
+                                    const direction = new THREE.Vector3();
+                                    camera.getWorldDirection(direction);
+                                    camera.position.addScaledVector(direction, 0.5);
+                                    isZooming = true;
                                 } else {
-                                    statusMsg.innerText = "等待手勢...";
-                                    handParticle.scale.setScalar(1);
+                                    statusMsg.innerText = "🚫 已達最近距離";
+                                }
+                            } 
+                            // Zoom Out
+                            // FIX: Added checks to prevent confusing with "Pointing Up"
+                            // Require NOT Pointing_Up and Middle finger NOT Curled to confirm it's a spread/zoom gesture
+                            else if (pinchRatio > 0.8 && categoryName !== "Open_Palm" && categoryName !== "Pointing_Up" && !isMiddleCurled) {
+                                if (currentDist < MAX_DISTANCE) {
+                                    statusMsg.innerText = "👐 視角拉遠 (Zoom Out)";
+                                    handParticle.material.color.setHex(0x0000ff);
+                                    const direction = new THREE.Vector3();
+                                    camera.getWorldDirection(direction);
+                                    camera.position.addScaledVector(direction, -0.5);
+                                    isZooming = true;
+                                } else {
+                                    statusMsg.innerText = "🚫 已達最遠距離";
+                                }
+                            }
+
+                            if (!isZooming) {
+                                // If index is extended, we allow rotation logic
+                                // But specifically if the user is pointing, we prefer rotation over zoom
+                                if (isIndexExtended && categoryName !== "Open_Palm" && categoryName !== "Closed_Fist") {
+                                    const sensitivity = 0.03;
+                                    let directionMsg = "";
+                                    let hasMovement = false;
+
+                                    // Horizontal
+                                    if (idxDx < -0.05) { // Left
+                                        directionMsg += "👈";
+                                        controls.autoRotate = false;
+                                        camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), sensitivity); 
+                                        hasMovement = true;
+                                    } else if (idxDx > 0.05) { // Right
+                                        directionMsg += "👉";
+                                        controls.autoRotate = false;
+                                        camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -sensitivity);
+                                        hasMovement = true;
+                                    }
+
+                                    // Vertical
+                                    if (idxDy < -0.05) { // Up
+                                        directionMsg += "👆";
+                                        camera.position.y += 0.5;
+                                        hasMovement = true;
+                                    } else if (idxDy > 0.05) { // Down
+                                        directionMsg += "👇";
+                                        camera.position.y -= 0.5;
+                                        if(camera.position.y < 5) camera.position.y = 5; 
+                                        hasMovement = true;
+                                    }
+
+                                    if (hasMovement) {
+                                        statusMsg.innerText = directionMsg + " 調整視角";
+                                        camera.lookAt(0, 40, 0); 
+                                        isRotating = true;
+                                    }
+                                }
+                                
+                                if (!isRotating) {
+                                    if (categoryName === "Closed_Fist") {
+                                        statusMsg.innerText = "✊ 集氣中...";
+                                        handParticle.material.color.setHex(0xff0000);
+                                        handClosed = true; 
+                                        handParticle.scale.setScalar(1.5 + Math.sin(nowInMs * 0.02) * 0.5);
+                                    } 
+                                    else if (categoryName === "Open_Palm") {
+                                        statusMsg.innerText = "🖐️ 施放煙火！";
+                                        handParticle.material.color.setHex(0xffffff);
+                                        handParticle.scale.setScalar(1);
+
+                                        if (handClosed) {
+                                            createFirework(handPos3D.x, handPos3D.y, handPos3D.z);
+                                            playFireworkSound(); 
+                                            handClosed = false; 
+                                        }
+                                    } else {
+                                        statusMsg.innerText = "等待手勢...";
+                                        handParticle.scale.setScalar(1);
+                                    }
                                 }
                             }
                         }
@@ -1401,6 +1435,7 @@
                 }
             } else {
                 handParticle.visible = false;
+                okGestureStartTime = 0; // Reset if hand lost
             }
         }
 
